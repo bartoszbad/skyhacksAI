@@ -42,41 +42,80 @@ RoomObjects = ['Bathroom cabinet', 'Bathroom sink', 'Bathub', 'Bed', 'Bed frame'
 OutsideObjects = ['Grass', 'Facade', 'House', 'Property', 'Real estate', 'Roof', 'Rural area', 'Sky', 'Tree',
                   'Urban area']
 
-input_dir = "input/test_1"
+input_dir = "input/test_final"
 c = canvas.Canvas(datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%S.pdf"))
 c.setLineWidth(.3)
-c.setFont('Helvetica', 12)
-page_size = (600, 1150)
+page_size = (600, 1300)
 img_size = 200
 c.setPageSize(page_size)
-c.drawImage("bg.jpg", 0, 0, 600, 1150)
+c.drawImage("bg.jpg", 0, 0, 600, 1300)
+
 
 def get_syn(name):
     return str(wn.synsets(name)[random.randint(0, len(wn.synsets(name)) - 1)].lemmas()[0].name())
 
 
+title = input_dir.split('/')[-1:][0].replace("_", " ").capitalize()
+c.setFont('Helvetica', 20)
+c.drawString(275, 1100, title)
+
+c.drawImage("blur.png", 155, 1125, 300, 150, mask='auto')
+c.drawImage("free.png", 150, 1130, 300, 150)
+
+c.setFont('Helvetica', 12)
 coords = [[50, 50], [50, 260], [50, 470], [50, 680], [50, 890], [50, 1100]]
 i = len(coords) - 1
+
 for files in os.listdir(input_dir):
+    if coords[i][1] < img_size + 50:
+        c.showPage()
+        i = len(coords) - 1
+        c.drawImage("bg.jpg", 0, 0, 600, 1300)
+        title = input_dir.split('/')[-1:][0].replace("_", " ").capitalize()
+        c.setFont('Helvetica', 20)
+        c.drawCentredString(300, 1100, title)
+        c.setFont('Helvetica', 12)
+
+        c.drawImage("blur.png", 155, 1125, 300, 150, mask='auto')
+        c.drawImage("free.png", 150, 1130, 300, 150)
+
     if files[::-1][:4] == "gpj.":
-        # c.drawImage("blur.png", coords[i][0]+5, coords[i][1]-5, img_size, img_size, mask='auto')
+        c.drawImage("blur.png", coords[i][0]+5, coords[i][1]-230, img_size, img_size, mask='auto')
         image = ImageReader(input_dir + "/" + str(files))
-        c.drawImage(image, coords[i][0], coords[i][1]-200, img_size, img_size)
+        c.drawImage(image, coords[i][0], coords[i][1]-225, img_size, img_size)
     if ".json" not in files:
         continue
 
     with open(input_dir + "/" + files) as file:
         d = json.load(file)
-
         was_obj = 0
         was_room = 0
         Sentence = ''
+        stack = list()
         for entity in d:
             if entity['name'] in RoomsList and was_room == 0:
                 Sentence = Sentence + entity['name']
                 was_room = 1
+                for el in stack:
+                    if was_obj == 0:
+                        if el['name'][0] in ('a', 'e', 'i', 'o', 'u'):
+                            Sentence = Sentence + ' has an ' + get_syn(el['name'].lower()) + ' and'
+                            was_obj = 1
+                        else:
+                            Sentence = Sentence + ' has a ' + el['name'].lower() + ' and'
+                            was_obj = 1
+                    else:
+                        if el['name'][0] in ('a', 'e', 'i', 'o', 'u'):
+                            Sentence = Sentence + ' an ' + get_syn(el['name'].lower()) + ' and'
+                            was_obj = 1
+                        else:
+                            Sentence = Sentence + ' a ' + el['name'].lower() + ' and'
+                            was_obj = 1
             elif entity['name'] in RoomObjects:
                 if was_obj == 0:
+                    if was_room == 0:
+                        stack.append(entity)
+                        continue
                     if entity['name'][0] in ('a', 'e', 'i', 'o', 'u'):
                         Sentence = Sentence + ' has an ' + get_syn(entity['name'].lower()) + ' and'
                         was_obj = 1
@@ -98,10 +137,10 @@ for files in os.listdir(input_dir):
         Sentence2 = Sentence2
         Sentence3 = 'it is available for ' + get_syn('purchase') + ' just now!'
         level = 0
+
         wrap_text = textwrap.wrap(Sentence + ". " + Sentence2 + Sentence3, width=50)
         for wrapped_text in wrap_text:
-            c.drawString(coords[i][0] + img_size + 20, coords[len(coords) - 1][1] - coords[len(coords) - 1 - i][1] + img_size - 10 - level*14 -200, wrapped_text)
+            c.drawString(coords[i][0] + img_size + 20, coords[len(coords) - 1][1] - coords[len(coords) - 1 - i][1] + img_size - 10 - level*14 -225, wrapped_text)
             level += 1
-
         i -= 1
 c.save()
