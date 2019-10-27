@@ -37,7 +37,7 @@ def task_1():
 
     detector = CustomObjectDetection()
     detector.setModelTypeAsYOLOv3()
-    detector.setModelPath("detection_model-ex-001--loss-0013.246.h5")
+    detector.setModelPath("detection_model-ex-003--loss-0012.363.h5")
     detector.setJsonPath("detection_config.json")
     detector.loadModel()
 
