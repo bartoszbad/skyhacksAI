@@ -37,7 +37,7 @@ def task_1():
 
     detector = CustomObjectDetection()
     detector.setModelTypeAsYOLOv3()
-    detector.setModelPath("detection_model-ex-005--loss-0017.749.h5")
+    detector.setModelPath("detection_model-ex-001--loss-0013.246.h5")
     detector.setJsonPath("detection_config.json")
     detector.loadModel()
 
@@ -55,10 +55,21 @@ def task_1():
                                                      output_image_path=(input_dir + "_done/" + file),
                                                      minimum_percentage_probability=90,
                                                      extract_detected_objects=False)
+        detection_list = list()
         for detection in detections:
-            print(file + " => " + detection["name"] + " => " + str(detection["percentage_probability"]))
-            df.at[file, detection["name"]] = 1
-
+            same = False
+            detection_list.append(detection)
+            for i in range(len(detection_list)):
+                if same:
+                    break
+                if detection_list[i]["box_points"] == detection["box_points"] and detection["percentage_probability"] > detection_list[i]["percentage_probability"]:
+                    df.at[file, detection_list[i]["name"]] = 0
+                    detection_list[i] = detection
+                    df.at[file, detection_list[i]["name"]] = 0
+                    same = True
+            if not same:
+                detection_list.append(detection)
+                df.at[file, detection["name"]] = 1
     df.to_csv("test.csv", index_label="filename")
     logger.debug("Done with Task 1.")
     return df
@@ -111,7 +122,6 @@ def task_2(df):
             continue
         df.at[row, "standard"] = random.randint(3, 4)
         df.at[row, "tech_cond"] = random.randint(3, 4)
-        print(df.at[row, "Bathroom"])
         maxi = df.at[row, "Bathroom"]
         max_label = "Bathroom"
         for col in df[labels_task_2].keys():
@@ -119,7 +129,7 @@ def task_2(df):
                 maxi = df.at[row, col]
                 max_label = col
         if maxi <= 0:
-            max_label = random.choice(["house", "bathroom", "bedroom", "dining_room", "kitchen", "living_room"])
+            max_label = random.choice(["house", "bathroom", "bedroom", "dinning_room", "kitchen", "living_room"])
         for col in df[labels_task_2].keys():
             if col != max_label:
                 df.at[row, col] = 0
@@ -130,6 +140,8 @@ def task_2(df):
                         df.at[row, "Room"] = 1
                     df.at[row, "House"] = 0
                     df.at[row, "task2_class"] = col.replace(" ", "_").lower()
+                    if(df.at[row, "task2_class"]) == "dining_room":
+                        df.at[row, "task2_class"] = "dinning_room"
                 else:
                     df.at[row, "task2_class"] = "house"
         for col in df[labels_task_2].keys():
